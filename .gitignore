@@ -1,0 +1,23 @@
+# Virtual environment
+.venv/
+venv/
+
+# Downloaded datasets (src/data.py downloads them again on a fresh clone)
+data/
+
+# Model checkpoints
+checkpoints/
+*.pt
+*.pth
+
+# Python and tool caches
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
