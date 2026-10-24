@@ -43,14 +43,20 @@ To be written. Known so far: images are only 28 by 28 pixels, and all data comes
 
 ## How to reproduce
 
-Requires Python 3.12 and git.
+Requires Python 3.12 and git. Name the Python version explicitly when creating the environment, because plain `python` may point to a different version on your machine.
 
 ```bash
 git clone https://github.com/anshulsin15jn-boop/trustworthy_tissue_classifier.git
 cd trustworthy_tissue_classifier
-python -m venv .venv
-# Windows:      .venv\Scripts\activate
-# macOS/Linux:  source .venv/bin/activate
+
+# Windows (PowerShell):
+py -3.12 -m venv .venv
+.venv\Scripts\activate
+# macOS/Linux:
+python3.12 -m venv .venv
+source .venv/bin/activate
+
+python --version            # should print Python 3.12.x
 pip install -r requirements.txt
 python -m pytest            # downloads PathMNIST (about 200 MB) on the first run
 jupyter notebook notebooks/00_explore_data.ipynb
