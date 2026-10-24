@@ -1,0 +1,7 @@
+feature vector length: 2352, training rows: 89996
+logistic regression C=1e-05: val accuracy 0.5104, 12s, 138 iterations, converged=True
+logistic regression C=0.0001: val accuracy 0.5270, 22s, 253 iterations, converged=True
+logistic regression C=0.001: val accuracy 0.5217, 28s, 327 iterations, converged=True
+logistic regression C=0.01: val accuracy 0.5156, 42s, 500 iterations, converged=False
+logistic regression (C=0.0001) test accuracy 0.5737, macro F1 0.4482
+random forest test accuracy 0.6400, macro F1 0.5617, 53s

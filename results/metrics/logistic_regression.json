@@ -1,0 +1,158 @@
+{
+  "model": "logistic_regression",
+  "test": {
+    "accuracy": 0.5736768802228412,
+    "macro_f1": 0.44817662150179277,
+    "per_class": {
+      "adipose": {
+        "precision": 0.9005805515239478,
+        "recall": 0.9275037369207773,
+        "f1": 0.9138438880706922,
+        "support": 1338
+      },
+      "background": {
+        "precision": 0.6128798842257598,
+        "recall": 1.0,
+        "f1": 0.7599820547330641,
+        "support": 847
+      },
+      "debris": {
+        "precision": 0.1976190476190476,
+        "recall": 0.2448377581120944,
+        "f1": 0.21870882740447958,
+        "support": 339
+      },
+      "lymphocytes": {
+        "precision": 0.4440993788819876,
+        "recall": 0.45110410094637227,
+        "f1": 0.4475743348982786,
+        "support": 634
+      },
+      "mucus": {
+        "precision": 0.48043184885290147,
+        "recall": 0.34396135265700484,
+        "f1": 0.4009009009009009,
+        "support": 1035
+      },
+      "smooth muscle": {
+        "precision": 0.404099560761347,
+        "recall": 0.46621621621621623,
+        "f1": 0.4329411764705882,
+        "support": 592
+      },
+      "normal colon mucosa": {
+        "precision": 0.5760869565217391,
+        "recall": 0.07152496626180836,
+        "f1": 0.12725090036014405,
+        "support": 741
+      },
+      "cancer-associated stroma": {
+        "precision": 0.4444444444444444,
+        "recall": 0.057007125890736345,
+        "f1": 0.10105263157894737,
+        "support": 421
+      },
+      "colorectal adenocarcinoma epithelium": {
+        "precision": 0.5335946248600224,
+        "recall": 0.772911597729116,
+        "f1": 0.6313348790990394,
+        "support": 1233
+      }
+    }
+  },
+  "val": {
+    "accuracy": 0.5269892043182727,
+    "macro_f1": 0.48042192647603876,
+    "per_class": {
+      "adipose": {
+        "precision": 0.7043979812545061,
+        "recall": 0.9385206532180596,
+        "f1": 0.8047775947281713,
+        "support": 1041
+      },
+      "background": {
+        "precision": 0.7689486552567237,
+        "recall": 0.5950804162724692,
+        "f1": 0.6709333333333334,
+        "support": 1057
+      },
+      "debris": {
+        "precision": 0.35311871227364183,
+        "recall": 0.3046875,
+        "f1": 0.3271202236719478,
+        "support": 1152
+      },
+      "lymphocytes": {
+        "precision": 0.6796193497224425,
+        "recall": 0.7413494809688581,
+        "f1": 0.7091435664046338,
+        "support": 1156
+      },
+      "mucus": {
+        "precision": 0.4322916666666667,
+        "recall": 0.46629213483146065,
+        "f1": 0.4486486486486487,
+        "support": 890
+      },
+      "smooth muscle": {
+        "precision": 0.4427666829030687,
+        "recall": 0.6713441654357459,
+        "f1": 0.5336072791312004,
+        "support": 1354
+      },
+      "normal colon mucosa": {
+        "precision": 0.4934210526315789,
+        "recall": 0.08551881413911061,
+        "f1": 0.1457725947521866,
+        "support": 877
+      },
+      "cancer-associated stroma": {
+        "precision": 0.2962962962962963,
+        "recall": 0.08421052631578947,
+        "f1": 0.13114754098360656,
+        "support": 1045
+      },
+      "colorectal adenocarcinoma epithelium": {
+        "precision": 0.4663784822286263,
+        "recall": 0.678072625698324,
+        "f1": 0.5526465566306203,
+        "support": 1432
+      }
+    }
+  },
+  "train_size": 89996,
+  "C": 0.0001,
+  "C_search": [
+    {
+      "C": 1e-05,
+      "val_accuracy": 0.5103958416633346,
+      "fit_seconds": 11.863859176635742,
+      "iterations": 138,
+      "converged": true
+    },
+    {
+      "C": 0.0001,
+      "val_accuracy": 0.5269892043182727,
+      "fit_seconds": 21.748960971832275,
+      "iterations": 253,
+      "converged": true
+    },
+    {
+      "C": 0.001,
+      "val_accuracy": 0.5216913234706118,
+      "fit_seconds": 28.08511447906494,
+      "iterations": 327,
+      "converged": true
+    },
+    {
+      "C": 0.01,
+      "val_accuracy": 0.515593762495002,
+      "fit_seconds": 41.97170090675354,
+      "iterations": 500,
+      "converged": false
+    }
+  ],
+  "fit_seconds": 21.513854265213013,
+  "iterations": 253,
+  "converged": true
+}
