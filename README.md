@@ -24,7 +24,7 @@ Medical image classifiers can be accurate on average and still be confidently wr
 | Phase | What | Status |
 |---|---|---|
 | 0 | Setup and data exploration | done |
-| 1 | Baselines: logistic regression, random forest | planned |
+| 1 | Baselines: logistic regression, random forest | done |
 | 2 | Small CNN on CPU, pretrained ResNet18 on Colab | planned |
 | 3 | Trust: calibration, uncertainty, out of distribution detection | planned |
 | 4 | Explainability with Grad CAM, writeup | planned |
@@ -32,6 +32,24 @@ Medical image classifiers can be accurate on average and still be confidently wr
 ## Results
 
 Filled in as each phase finishes. Every number here comes from code in this repo.
+
+### Phase 1: baselines on flattened pixels
+
+Both models see each image as 2,352 unordered numbers and were trained on all 89,996 training images. Logistic regression's regularization strength was chosen on the validation set. Run `python -m src.baselines`; the log is in `results/logs/baselines.txt`.
+
+| Model | Test accuracy | Test macro F1 | Validation accuracy |
+|---|---|---|---|
+| Logistic regression (C = 0.0001) | 0.574 | 0.448 | 0.527 |
+| Random forest (200 trees) | 0.640 | 0.562 | 0.672 |
+
+What we learned:
+
+* **Flattened pixels only get you so far.** Background (100% recall for the random forest) and adipose are easy because their overall color is distinctive. Classes defined by texture and structure are hard.
+* **Normal mucosa is the worst case.** The random forest finds only 25% of normal mucosa and calls 48% of it tumor; logistic regression finds only 7%. A model that calls healthy tissue cancer is exactly the kind of error a pathologist needs flagged.
+* **Accuracy and macro F1 can move in opposite directions.** Logistic regression scores higher accuracy on test than on validation (0.574 versus 0.527) but lower macro F1 (0.448 versus 0.480). The test set contains more of the easy adipose class, which lifts accuracy without the model being better at the hard classes.
+* **Why a CNN should help:** flattening throws away which pixels are next to each other, so a model cannot learn "a ring of purple nuclei around a pale gland." A convolutional network keeps the 2D layout and learns small local patterns.
+
+![Random forest confusion matrix](results/figures/random_forest_confusion.png)
 
 ## Trust
 
