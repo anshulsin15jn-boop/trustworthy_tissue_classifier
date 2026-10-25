@@ -1,0 +1,17 @@
+calibration small_cnn: T=0.933 ECE 0.0637 -> 0.0685
+calibration resnet18: T=1.061 ECE 0.0780 -> 0.0710
+uncertainty: {"max softmax probability": {"0.50": 0.9504178272980501, "0.80": 0.9350626740947076, "0.90": 0.9155060352831941, "0.95": 0.8982553877730538, "1.00": 0.8747910863509749}, "softmax entropy": {"0.50": 0.9501392757660168, "0.80": 0.9362813370473537, "0.90": 0.9159702878365831, "0.95": 0.8970825392171236, "1.00": 0.8747910863509749}, "MC dropout entropy": {"0.50": 0.9685236768802229, "0.80": 0.9395891364902507, "0.90": 0.9100897554936552, "0.95": 0.8950300542442458, "1.00": 0.8731197771587744}}
+OOD blur 1: 1 minus max softmax 0.545, softmax entropy 0.543, MC dropout entropy 0.560
+OOD blur 2: 1 minus max softmax 0.601, softmax entropy 0.603, MC dropout entropy 0.647
+OOD blur 3: 1 minus max softmax 0.580, softmax entropy 0.583, MC dropout entropy 0.629
+OOD noise 1: 1 minus max softmax 0.766, softmax entropy 0.773, MC dropout entropy 0.880
+OOD noise 2: 1 minus max softmax 0.726, softmax entropy 0.729, MC dropout entropy 0.935
+OOD noise 3: 1 minus max softmax 0.627, softmax entropy 0.622, MC dropout entropy 0.957
+OOD brightness 1: 1 minus max softmax 0.584, softmax entropy 0.577, MC dropout entropy 0.644
+OOD brightness 2: 1 minus max softmax 0.582, softmax entropy 0.576, MC dropout entropy 0.727
+OOD brightness 3: 1 minus max softmax 0.714, softmax entropy 0.709, MC dropout entropy 0.871
+OOD contrast 1: 1 minus max softmax 0.503, softmax entropy 0.501, MC dropout entropy 0.512
+OOD contrast 2: 1 minus max softmax 0.527, softmax entropy 0.526, MC dropout entropy 0.547
+OOD contrast 3: 1 minus max softmax 0.548, softmax entropy 0.550, MC dropout entropy 0.597
+OOD BloodMNIST: 1 minus max softmax 0.172, softmax entropy 0.188, MC dropout entropy 0.536
+saved results/metrics/trust.json
