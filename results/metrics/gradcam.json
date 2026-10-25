@@ -1,0 +1,175 @@
+{
+  "groups": {
+    "Correct and confident (one per class)": [
+      {
+        "index": 5994,
+        "true": "ADI",
+        "predicted": "ADI",
+        "confidence": 0.9994266033172607
+      },
+      {
+        "index": 4768,
+        "true": "BACK",
+        "predicted": "BACK",
+        "confidence": 1.0
+      },
+      {
+        "index": 3841,
+        "true": "DEB",
+        "predicted": "DEB",
+        "confidence": 1.0
+      },
+      {
+        "index": 1767,
+        "true": "LYM",
+        "predicted": "LYM",
+        "confidence": 0.999991774559021
+      },
+      {
+        "index": 2282,
+        "true": "MUC",
+        "predicted": "MUC",
+        "confidence": 0.9998911619186401
+      },
+      {
+        "index": 343,
+        "true": "MUS",
+        "predicted": "MUS",
+        "confidence": 0.9995341300964355
+      },
+      {
+        "index": 691,
+        "true": "NORM",
+        "predicted": "NORM",
+        "confidence": 0.9767840504646301
+      },
+      {
+        "index": 156,
+        "true": "STR",
+        "predicted": "STR",
+        "confidence": 0.9900512099266052
+      },
+      {
+        "index": 1248,
+        "true": "TUM",
+        "predicted": "TUM",
+        "confidence": 0.9977769255638123
+      }
+    ],
+    "Wrong (random sample)": [
+      {
+        "index": 3919,
+        "true": "NORM",
+        "predicted": "DEB",
+        "confidence": 0.5653431415557861
+      },
+      {
+        "index": 6438,
+        "true": "MUS",
+        "predicted": "BACK",
+        "confidence": 0.9889253973960876
+      },
+      {
+        "index": 5296,
+        "true": "TUM",
+        "predicted": "MUC",
+        "confidence": 0.7566911578178406
+      },
+      {
+        "index": 5805,
+        "true": "MUC",
+        "predicted": "ADI",
+        "confidence": 0.8636938333511353
+      },
+      {
+        "index": 3599,
+        "true": "MUC",
+        "predicted": "ADI",
+        "confidence": 0.7958589196205139
+      },
+      {
+        "index": 4403,
+        "true": "MUC",
+        "predicted": "BACK",
+        "confidence": 0.9999958276748657
+      },
+      {
+        "index": 4731,
+        "true": "STR",
+        "predicted": "TUM",
+        "confidence": 0.9676899313926697
+      },
+      {
+        "index": 4660,
+        "true": "STR",
+        "predicted": "TUM",
+        "confidence": 0.8658294677734375
+      },
+      {
+        "index": 6946,
+        "true": "MUC",
+        "predicted": "BACK",
+        "confidence": 0.9999918937683105
+      }
+    ],
+    "Most uncertain (highest MC dropout entropy)": [
+      {
+        "index": 2794,
+        "true": "MUC",
+        "predicted": "NORM",
+        "confidence": 0.3364184498786926
+      },
+      {
+        "index": 185,
+        "true": "MUC",
+        "predicted": "NORM",
+        "confidence": 0.428341805934906
+      },
+      {
+        "index": 5282,
+        "true": "MUC",
+        "predicted": "ADI",
+        "confidence": 0.29349827766418457
+      },
+      {
+        "index": 2753,
+        "true": "NORM",
+        "predicted": "NORM",
+        "confidence": 0.3896973133087158
+      },
+      {
+        "index": 3978,
+        "true": "STR",
+        "predicted": "MUS",
+        "confidence": 0.38122546672821045
+      },
+      {
+        "index": 5359,
+        "true": "TUM",
+        "predicted": "TUM",
+        "confidence": 0.41923147439956665
+      },
+      {
+        "index": 3051,
+        "true": "NORM",
+        "predicted": "NORM",
+        "confidence": 0.40700072050094604
+      },
+      {
+        "index": 4635,
+        "true": "ADI",
+        "predicted": "TUM",
+        "confidence": 0.4230419099330902
+      },
+      {
+        "index": 2841,
+        "true": "MUC",
+        "predicted": "NORM",
+        "confidence": 0.4393952786922455
+      }
+    ]
+  },
+  "sanity_check_images": 500,
+  "median_correlation_trained_vs_random_model": -0.01965640634015463,
+  "median_correlation_predicted_vs_second_class": -0.12787058409635232
+}

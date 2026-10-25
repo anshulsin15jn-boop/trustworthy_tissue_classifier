@@ -1,0 +1,5 @@
+{
+  "sanity_check_images": 500,
+  "median_correlation_trained_vs_random_model": -0.01965640634015463,
+  "median_correlation_predicted_vs_second_class": -0.12787058409635232
+}
