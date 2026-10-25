@@ -1,0 +1,274 @@
+{
+  "calibration": {
+    "small_cnn": {
+      "temperature": 0.932929248130423,
+      "test_accuracy": 0.8747910863509749,
+      "ece_before": 0.06367268622502645,
+      "ece_after": 0.06850629250485253,
+      "nll_before": 0.7194963097572327,
+      "nll_after": 0.7401200532913208,
+      "mean_confidence_before": 0.9374502301216125,
+      "mean_confidence_after": 0.9424343109130859,
+      "val_ece_before": 0.0034412177758472175,
+      "val_ece_after": 0.002568731810607113
+    },
+    "resnet18": {
+      "temperature": 1.0605218673913086,
+      "test_accuracy": 0.8385793871866295,
+      "ece_before": 0.0780374905234592,
+      "ece_after": 0.07101919566771447,
+      "nll_before": 0.5211943984031677,
+      "nll_after": 0.5060510635375977,
+      "mean_confidence_before": 0.9163650274276733,
+      "mean_confidence_after": 0.9095269441604614,
+      "val_ece_before": 0.01062737740740118,
+      "val_ece_after": 0.006898751283516554
+    }
+  },
+  "uncertainty": {
+    "mc_samples": 30,
+    "deterministic_accuracy": 0.8747910863509749,
+    "mc_dropout_accuracy": 0.8731197771587744,
+    "accuracy_at_coverage": {
+      "max softmax probability": {
+        "0.50": 0.9504178272980501,
+        "0.80": 0.9350626740947076,
+        "0.90": 0.9155060352831941,
+        "0.95": 0.8982553877730538,
+        "1.00": 0.8747910863509749
+      },
+      "softmax entropy": {
+        "0.50": 0.9501392757660168,
+        "0.80": 0.9362813370473537,
+        "0.90": 0.9159702878365831,
+        "0.95": 0.8970825392171236,
+        "1.00": 0.8747910863509749
+      },
+      "MC dropout entropy": {
+        "0.50": 0.9685236768802229,
+        "0.80": 0.9395891364902507,
+        "0.90": 0.9100897554936552,
+        "0.95": 0.8950300542442458,
+        "1.00": 0.8731197771587744
+      }
+    },
+    "auroc_wrong_vs_right": {
+      "1 minus max softmax": 0.7736749194517993,
+      "softmax entropy": 0.7759539823742314,
+      "MC dropout entropy": 0.827905122324949
+    }
+  },
+  "ood": {
+    "auroc": {
+      "blur 1": {
+        "1 minus max softmax": 0.5452152082153304,
+        "softmax entropy": 0.5430122457926304,
+        "MC dropout entropy": 0.5601155135357423
+      },
+      "blur 2": {
+        "1 minus max softmax": 0.6014784956665452,
+        "softmax entropy": 0.6029731108541988,
+        "MC dropout entropy": 0.6471494343619307
+      },
+      "blur 3": {
+        "1 minus max softmax": 0.5798046550694052,
+        "softmax entropy": 0.5828163771230825,
+        "MC dropout entropy": 0.6294881324632801
+      },
+      "noise 1": {
+        "1 minus max softmax": 0.7656828004127838,
+        "softmax entropy": 0.773172286838246,
+        "MC dropout entropy": 0.8798586777725188
+      },
+      "noise 2": {
+        "1 minus max softmax": 0.7263885774474126,
+        "softmax entropy": 0.7286525845547442,
+        "MC dropout entropy": 0.9350922750444209
+      },
+      "noise 3": {
+        "1 minus max softmax": 0.6270253276278117,
+        "softmax entropy": 0.6221278155818157,
+        "MC dropout entropy": 0.9570307686936012
+      },
+      "brightness 1": {
+        "1 minus max softmax": 0.5839532495092372,
+        "softmax entropy": 0.5774118760717251,
+        "MC dropout entropy": 0.6442852321133449
+      },
+      "brightness 2": {
+        "1 minus max softmax": 0.5819680752011546,
+        "softmax entropy": 0.576357531366144,
+        "MC dropout entropy": 0.7272597687013601
+      },
+      "brightness 3": {
+        "1 minus max softmax": 0.7136828353287141,
+        "softmax entropy": 0.7092443804750118,
+        "MC dropout entropy": 0.8707369298034622
+      },
+      "contrast 1": {
+        "1 minus max softmax": 0.5029139865457283,
+        "softmax entropy": 0.500784357275316,
+        "MC dropout entropy": 0.5118426106253056
+      },
+      "contrast 2": {
+        "1 minus max softmax": 0.5268042612953034,
+        "softmax entropy": 0.5255884595091596,
+        "MC dropout entropy": 0.5466341916186248
+      },
+      "contrast 3": {
+        "1 minus max softmax": 0.5482802352557786,
+        "softmax entropy": 0.5496570964688356,
+        "MC dropout entropy": 0.5967878993024573
+      },
+      "BloodMNIST": {
+        "1 minus max softmax": 0.17185656509564473,
+        "softmax entropy": 0.1884387272124735,
+        "MC dropout entropy": 0.5356819952790359
+      }
+    },
+    "accuracy_on_corrupted": {
+      "blur 1": 0.5896935933147632,
+      "blur 2": 0.4193593314763231,
+      "blur 3": 0.2954038997214485,
+      "noise 1": 0.09693593314763231,
+      "noise 2": 0.09707520891364903,
+      "noise 3": 0.09206128133704736,
+      "brightness 1": 0.2622562674094708,
+      "brightness 2": 0.15125348189415042,
+      "brightness 3": 0.0894150417827298,
+      "contrast 1": 0.728690807799443,
+      "contrast 2": 0.5750696378830084,
+      "contrast 3": 0.33593314763231197
+    },
+    "clean_accuracy": 0.8747910863509749,
+    "mean_max_softmax": {
+      "clean test": 0.9374502301216125,
+      "blur 1": 0.9215449690818787,
+      "blur 2": 0.8719298243522644,
+      "blur 3": 0.8604735732078552,
+      "noise 1": 0.7922318577766418,
+      "noise 2": 0.8232920169830322,
+      "noise 3": 0.890749454498291,
+      "brightness 1": 0.8883122801780701,
+      "brightness 2": 0.9108525514602661,
+      "brightness 3": 0.873729944229126,
+      "contrast 1": 0.9336129426956177,
+      "contrast 2": 0.9232240319252014,
+      "contrast 3": 0.906217634677887,
+      "BloodMNIST": 0.9961285591125488
+    },
+    "bloodmnist_count": 3421,
+    "bloodmnist_predicted_class_counts": {
+      "ADI": 0,
+      "BACK": 3361,
+      "DEB": 60,
+      "LYM": 0,
+      "MUC": 0,
+      "MUS": 0,
+      "NORM": 0,
+      "STR": 0,
+      "TUM": 0
+    },
+    "bloodmnist_share_above_0.9_confidence": 0.9871382636655949,
+    "clean_share_above_0.9_confidence": 0.8123955431754875
+  },
+  "confident_mistakes": [
+    {
+      "index": 6979,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    },
+    {
+      "index": 285,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    },
+    {
+      "index": 4878,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    },
+    {
+      "index": 4984,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    },
+    {
+      "index": 4513,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    },
+    {
+      "index": 5094,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    },
+    {
+      "index": 546,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    },
+    {
+      "index": 710,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    },
+    {
+      "index": 3033,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    },
+    {
+      "index": 6397,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    },
+    {
+      "index": 3178,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    },
+    {
+      "index": 1221,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    },
+    {
+      "index": 3152,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    },
+    {
+      "index": 3164,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    },
+    {
+      "index": 6530,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    },
+    {
+      "index": 988,
+      "true": "MUS",
+      "predicted": "BACK",
+      "confidence": 1.0
+    }
+  ],
+  "wrong_predictions_above_0.99_confidence": 219
+}

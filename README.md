@@ -26,7 +26,7 @@ Medical image classifiers can be accurate on average and still be confidently wr
 | 0 | Setup and data exploration | done |
 | 1 | Baselines: logistic regression, random forest | done |
 | 2 | Small CNN and pretrained ResNet18, both trained on CPU | done |
-| 3 | Trust: calibration, uncertainty, out of distribution detection | planned |
+| 3 | Trust: calibration, uncertainty, out of distribution detection, staining check | done |
 | 4 | Explainability with Grad CAM, writeup | planned |
 
 ## Results
@@ -78,7 +78,66 @@ What we learned:
 
 ## Trust
 
-To be written in Phase 3.
+Phase 3 asks whether the small CNN knows when it does not know. Run `python -m src.trust` and `python -m src.stain`; all numbers are in `results/metrics/trust.json` and `results/metrics/stain.json`.
+
+### Calibration: does 90 percent confidence mean 90 percent right?
+
+| | Validation ECE | Test ECE | Mean confidence on test | Test accuracy |
+|---|---|---|---|---|
+| Small CNN | 0.003 | 0.064 | 0.938 | 0.875 |
+| Small CNN after temperature scaling (T = 0.93) | 0.003 | 0.069 | 0.942 | 0.875 |
+
+* **In house, the model is almost perfectly calibrated** (ECE 0.003 on validation). **At the new hospital it is overconfident**: about 6 points more confident than it is accurate.
+* **Temperature scaling did not help.** It is fitted on validation data, where there was nothing to fix, so it learned T = 0.93 (slightly sharper) and made test calibration a little worse. A calibration fix learned on in house data cannot anticipate a shift it has never seen. (For ResNet18, using the local checkpoint, temperature scaling did lower test ECE slightly, from 0.078 to 0.071.)
+
+![Reliability diagram](results/figures/reliability_diagram.png)
+
+### Uncertainty: can the model hand its hardest cases to a pathologist?
+
+| Uncertainty score | Accuracy if the model answers its most certain 50% | 80% | 90% | All |
+|---|---|---|---|---|
+| Max softmax probability | 0.950 | 0.935 | 0.916 | 0.875 |
+| Monte Carlo dropout entropy (30 passes) | **0.969** | **0.940** | 0.910 | 0.873 |
+
+* **Refusing uncertain images works.** If the model answers only its most certain half, accuracy rises from 87.5% to 95.0% with max softmax and 96.9% with Monte Carlo dropout.
+* **Monte Carlo dropout separates right from wrong answers best**: AUROC 0.828, against 0.774 for max softmax probability. Its advantage is at low and middle coverage; at 90% coverage the two are about equal.
+* **Some mistakes are invisible to confidence:** 219 wrong test predictions had more than 99% confidence. The most confident ones are all smooth muscle called background at 100%.
+
+![Accuracy versus coverage](results/figures/accuracy_coverage.png)
+
+![Confident mistakes](results/figures/confident_mistakes.png)
+
+### Out of distribution detection: does the model notice unfamiliar images?
+
+AUROC for telling clean test images apart from each kind of unfamiliar data (0.5 is chance, 1.0 is perfect):
+
+| Unfamiliar data | Accuracy on it | Max softmax | Monte Carlo dropout entropy |
+|---|---|---|---|
+| Gaussian noise (strongest) | 0.092 | 0.627 | **0.957** |
+| Brightness (strongest) | 0.089 | 0.714 | **0.871** |
+| Blur (strongest) | 0.295 | 0.580 | 0.629 |
+| Contrast (strongest) | 0.336 | 0.548 | 0.597 |
+| BloodMNIST (blood cells, not tissue) | not applicable | **0.172** | 0.536 |
+
+* **Corruptions wreck accuracy while confidence stays high.** Under noise, accuracy falls to about 9%, which is chance for 9 classes, yet mean confidence stays between 0.79 and 0.89.
+* **Monte Carlo dropout catches noise and brightness changes well** (AUROC up to 0.96). Max softmax catches them only weakly, and neither catches faded contrast or blur.
+* **BloodMNIST is a complete failure.** The tissue model calls 98% of blood cell images "background", and 98.7% of them get over 90% confidence. Max softmax AUROC is 0.17, worse than chance: the model is *more* confident on blood cells than on real tissue. Monte Carlo dropout only brings this to 0.54, close to chance. A softmax classifier has no "none of the above" option, so data from a different domain can land confidently in whichever class it most resembles.
+
+![Out of distribution AUROC](results/figures/ood_auroc.png)
+
+![BloodMNIST images the model was confident about](results/figures/bloodmnist_confident.png)
+
+### Is the test set's color different because of staining or because of class mix?
+
+Phase 0 could not separate the two. Here the training set is reweighted to the test set's exact class mix. The color distance between train and test barely moves (red 0.173 to 0.171, green 0.186 to 0.196, blue 0.192 to 0.184, on a scale where 0 is identical and 1 is no overlap). **The difference is in the images themselves, not the class mix:** a real staining or scanning shift. Within single classes it is largest for background (0.62) and adipose (0.45) and smallest for normal mucosa (0.07).
+
+![Color after matching class mix](results/figures/stain_reweighted_histograms.png)
+
+### What worked and what did not
+
+* **Worked:** Monte Carlo dropout entropy is the most useful flag. It raises accuracy on the cases the model keeps and detects noise and exposure problems well.
+* **Did not work:** temperature scaling fitted in house did not fix overconfidence at a new hospital, contrast and blur changes were mostly undetected, and blood cell images, a different domain entirely, were not flagged at all.
+* **The takeaway for a pathologist:** high confidence from this model is not a guarantee. Uncertainty flags catch some problems, but a separate check that an image is even tissue is needed before trusting any prediction.
 
 ## Limitations
 

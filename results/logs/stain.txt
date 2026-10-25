@@ -1,0 +1,4 @@
+red: distance 0.173 -> 0.171 after matching class mix
+green: distance 0.186 -> 0.196 after matching class mix
+blue: distance 0.192 -> 0.184 after matching class mix
+per class mean distance: {'ADI': 0.452, 'BACK': 0.623, 'DEB': 0.312, 'LYM': 0.183, 'MUC': 0.154, 'MUS': 0.224, 'NORM': 0.072, 'STR': 0.212, 'TUM': 0.178}
