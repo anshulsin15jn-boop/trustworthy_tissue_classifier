@@ -91,30 +91,62 @@ IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
 
-def channel_mean_std(images):
-    """Per color channel mean and standard deviation of uint8 images, on a 0 to 1 scale."""
-    x = images.astype(np.float64) / 255.0
-    return x.mean(axis=(0, 1, 2)).tolist(), x.std(axis=(0, 1, 2)).tolist()
+def channel_mean_std(images, chunk=10000):
+    """Per color channel mean and standard deviation of uint8 images, on a 0 to 1 scale.
+
+    Works through the images in chunks so it never holds a float copy of the
+    whole training set in memory (that copy alone would be about 1.7 GB).
+    """
+    total, total_sq, count = np.zeros(3), np.zeros(3), 0
+    for i in range(0, len(images), chunk):
+        x = images[i:i + chunk].reshape(-1, 3).astype(np.float64) / 255.0
+        total += x.sum(axis=0)
+        total_sq += (x ** 2).sum(axis=0)
+        count += len(x)
+    mean = total / count
+    return mean.tolist(), np.sqrt(total_sq / count - mean ** 2).tolist()
+
+
+def normalize(x_uint8, mean, std):
+    """Turn a uint8 tensor of shape (N, 3, H, W) into normalized floats.
+
+    Normalizing (subtract the mean, divide by the standard deviation, per
+    channel) puts every input on a similar scale around 0, which makes
+    training more stable.
+    """
+    mean = torch.tensor(mean).view(1, 3, 1, 1)
+    std = torch.tensor(std).view(1, 3, 1, 1)
+    return x_uint8.float().div_(255.0).sub_(mean).div_(std)
 
 
 def to_tensor(images, mean, std):
     """Convert (N, H, W, 3) uint8 images to a normalized float tensor of shape (N, 3, H, W).
 
-    PyTorch wants the color channel first. Normalizing (subtract the mean,
-    divide by the standard deviation, per channel) puts every input on a
-    similar scale around 0, which makes training more stable.
+    PyTorch wants the color channel first. Used for the smaller evaluation
+    sets; training batches are normalized one at a time by make_loader.
     """
-    x = torch.from_numpy(np.ascontiguousarray(images)).permute(0, 3, 1, 2).float().div(255.0)
-    mean = torch.tensor(mean).view(1, 3, 1, 1)
-    std = torch.tensor(std).view(1, 3, 1, 1)
-    return (x - mean) / std
+    return normalize(torch.from_numpy(np.ascontiguousarray(images)).permute(0, 3, 1, 2), mean, std)
 
 
 def make_loader(images, labels, mean, std, batch_size=128, shuffle=False, seed=0):
-    """Wrap images and labels in a DataLoader that serves shuffled mini batches."""
-    dataset = TensorDataset(to_tensor(images, mean, std), torch.from_numpy(labels))
+    """Wrap images and labels in a DataLoader that serves normalized mini batches.
+
+    The images stay stored as compact uint8 (about 0.2 GB for the training set)
+    and each batch is converted to normalized floats only when it is served,
+    instead of holding a float copy of the whole set (about 0.85 GB).
+    """
+    x = torch.from_numpy(np.ascontiguousarray(images)).permute(0, 3, 1, 2)
+    dataset = TensorDataset(x, torch.from_numpy(labels))
+
+    def collate(batch):
+        xs, ys = zip(*batch)
+        return normalize(torch.stack(xs), mean, std), torch.stack(ys)
+
     generator = torch.Generator().manual_seed(seed)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, generator=generator)
+    # num_workers=0 loads batches in the main process: no extra worker processes,
+    # each holding its own copy of the data, which keeps memory use low.
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, generator=generator, collate_fn=collate,
+                      num_workers=0)
 
 
 def augment(x):

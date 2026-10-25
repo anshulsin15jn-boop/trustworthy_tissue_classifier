@@ -1,0 +1,32 @@
+small_cnn: 111,369 trainable parameters
+epoch  1  train loss 0.6244 acc 0.7757  val loss 0.4018 acc 0.8533  37s  peak RAM 1.14 GB  (best, saved)
+epoch  2  train loss 0.3671 acc 0.8709  val loss 0.3950 acc 0.8657  37s  peak RAM 1.14 GB  (best, saved)
+epoch  3  train loss 0.2983 acc 0.8969  val loss 0.2821 acc 0.9034  42s  peak RAM 1.14 GB  (best, saved)
+epoch  4  train loss 0.2600 acc 0.9099  val loss 0.1710 acc 0.9427  49s  peak RAM 1.14 GB  (best, saved)
+epoch  5  train loss 0.2274 acc 0.9221  val loss 0.4601 acc 0.8569  49s  peak RAM 1.14 GB
+epoch  6  train loss 0.2178 acc 0.9259  val loss 0.1916 acc 0.9358  44s  peak RAM 1.14 GB
+epoch  7  train loss 0.2014 acc 0.9308  val loss 0.2385 acc 0.9161  52s  peak RAM 1.14 GB
+epoch  8  train loss 0.1855 acc 0.9366  val loss 0.1536 acc 0.9499  45s  peak RAM 1.14 GB  (best, saved)
+epoch  9  train loss 0.1799 acc 0.9397  val loss 0.1478 acc 0.9480  51s  peak RAM 1.14 GB  (best, saved)
+epoch 10  train loss 0.1679 acc 0.9434  val loss 0.1766 acc 0.9362  49s  peak RAM 1.14 GB
+epoch 11  train loss 0.1630 acc 0.9445  val loss 0.1020 acc 0.9653  52s  peak RAM 1.14 GB  (best, saved)
+epoch 12  train loss 0.1539 acc 0.9471  val loss 0.3214 acc 0.8901  51s  peak RAM 1.14 GB
+epoch 13  train loss 0.1524 acc 0.9484  val loss 0.2688 acc 0.9141  54s  peak RAM 1.14 GB
+epoch 14  train loss 0.1482 acc 0.9499  val loss 0.1148 acc 0.9599  46s  peak RAM 1.14 GB
+epoch 15  train loss 0.1383 acc 0.9538  val loss 0.1000 acc 0.9668  45s  peak RAM 1.14 GB  (best, saved)
+epoch 16  train loss 0.1316 acc 0.9557  val loss 0.0904 acc 0.9703  42s  peak RAM 1.14 GB  (best, saved)
+epoch 17  train loss 0.1294 acc 0.9560  val loss 0.1147 acc 0.9595  43s  peak RAM 1.14 GB
+epoch 18  train loss 0.1264 acc 0.9564  val loss 0.1605 acc 0.9503  41s  peak RAM 1.14 GB
+epoch 19  train loss 0.1261 acc 0.9577  val loss 0.1052 acc 0.9635  44s  peak RAM 1.14 GB
+epoch 20  train loss 0.1175 acc 0.9601  val loss 0.0814 acc 0.9724  50s  peak RAM 1.14 GB  (best, saved)
+epoch 21  train loss 0.1130 acc 0.9613  val loss 0.0951 acc 0.9677  50s  peak RAM 1.14 GB
+epoch 22  train loss 0.1123 acc 0.9621  val loss 0.0774 acc 0.9766  53s  peak RAM 1.14 GB  (best, saved)
+epoch 23  train loss 0.1132 acc 0.9616  val loss 0.0790 acc 0.9737  54s  peak RAM 1.14 GB
+epoch 24  train loss 0.1122 acc 0.9620  val loss 0.0684 acc 0.9773  52s  peak RAM 1.14 GB  (best, saved)
+epoch 25  train loss 0.1056 acc 0.9647  val loss 0.0715 acc 0.9775  56s  peak RAM 1.14 GB
+epoch 26  train loss 0.1052 acc 0.9643  val loss 0.0786 acc 0.9734  47s  peak RAM 1.14 GB
+epoch 27  train loss 0.1045 acc 0.9646  val loss 0.0746 acc 0.9749  44s  peak RAM 1.14 GB
+epoch 28  train loss 0.0969 acc 0.9669  val loss 0.0742 acc 0.9744  45s  peak RAM 1.14 GB
+early stop: no val loss improvement for 4 epochs; best epoch 24
+test accuracy 0.8748  macro F1 0.8399  (val accuracy 0.9773)  peak RAM 1.14 GB
+exit code 0

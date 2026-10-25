@@ -1,0 +1,5 @@
+model,test accuracy,test macro F1,val accuracy
+Logistic regression (flattened pixels),0.574,0.448,0.527
+Random forest (flattened pixels),0.640,0.562,0.672
+"Small CNN (trained from scratch, CPU)",0.875,0.840,0.977
+"ResNet18 (ImageNet pretrained, fine tuned on CPU)",0.839,0.793,0.925

@@ -25,7 +25,7 @@ Medical image classifiers can be accurate on average and still be confidently wr
 |---|---|---|
 | 0 | Setup and data exploration | done |
 | 1 | Baselines: logistic regression, random forest | done |
-| 2 | Small CNN on CPU, pretrained ResNet18 on Colab | planned |
+| 2 | Small CNN and pretrained ResNet18, both trained on CPU | done |
 | 3 | Trust: calibration, uncertainty, out of distribution detection | planned |
 | 4 | Explainability with Grad CAM, writeup | planned |
 
@@ -50,6 +50,31 @@ What we learned:
 * **Why a CNN should help:** flattening throws away which pixels are next to each other, so a model cannot learn "a ring of purple nuclei around a pale gland." A convolutional network keeps the 2D layout and learns small local patterns.
 
 ![Random forest confusion matrix](results/figures/random_forest_confusion.png)
+
+### Phase 2: convolutional neural networks
+
+All four models on the same official test set (`python -m src.compare` rebuilds this table from `results/metrics/`):
+
+| Model | Test accuracy | Test macro F1 | Validation accuracy |
+|---|---|---|---|
+| Logistic regression (flattened pixels) | 0.574 | 0.448 | 0.527 |
+| Random forest (flattened pixels) | 0.640 | 0.562 | 0.672 |
+| **Small CNN** (trained from scratch, CPU) | **0.875** | **0.840** | 0.977 |
+| ResNet18 (ImageNet pretrained, fine tuned on CPU) | 0.839 | 0.793 | 0.925 |
+
+* **Small CNN:** three convolution blocks and a dropout classifier, 111,369 parameters. Trained with random flips and 90 degree rotations, Adam, batch size 128, and early stopping on validation loss (patience 4). It stopped after 28 epochs and kept epoch 24. Training took 22.1 minutes on a laptop CPU with a peak of 1.14 GB of RAM. Log: `results/logs/small_cnn.txt`.
+* **ResNet18:** ImageNet weights with a new 9 class output layer, fine tuned at 28 by 28. Each epoch took about 6 to 8 minutes on the CPU, so it ran under a 25 minute budget: 4 epochs, keeping epoch 3. Peak RAM was 1.04 GB. Log: `results/logs/resnet18.txt`.
+
+What we learned:
+
+* **Keeping the 2D layout is what matters.** The small CNN beats the random forest by 23.5 points of accuracy and 0.28 of macro F1. Normal mucosa recall rose from 25% to 91%.
+* **The pretrained ResNet18 did not win here.** Two likely reasons: it trained for only 4 epochs against the small CNN's 28, and its design shrinks a 28 by 28 input to a single cell by the last block, far from the 224 by 224 photos it was pretrained on. This is a result about this setup, not about transfer learning in general.
+* **There is a big gap between validation and test.** The small CNN reaches 0.977 on validation but 0.875 on test. Validation comes from the same source as training; test comes from another clinical center. A model can look nearly perfect in house and still drop 10 points at a new hospital.
+* **The hardest classes on test** are cancer associated stroma (55% recall, often called debris or smooth muscle), smooth muscle (67%), and mucus (74%, sometimes called background or adipose).
+
+![Small CNN training curves](results/figures/small_cnn_training_curves.png)
+
+![Small CNN confusion matrix](results/figures/small_cnn_confusion.png)
 
 ## Trust
 
@@ -79,6 +104,12 @@ pip install -r requirements.txt
 python -m pytest            # downloads PathMNIST (about 200 MB) on the first run
 jupyter notebook notebooks/00_explore_data.ipynb
 ```
+
+## Engineering notes
+
+* **Memory:** the first small CNN run was stopped when the laptop ran low on memory. Training now keeps images as 8 bit integers and normalizes one batch at a time, computes channel statistics in chunks, and uses a single process DataLoader (`num_workers=0`). Peak RAM fell to 1.14 GB for the small CNN and 1.04 GB for ResNet18, logged in each run.
+* **Logistic regression** is fit with full batch L-BFGS in PyTorch, minimizing the same objective as scikit learn's `LogisticRegression`. scikit learn's own solver did not converge in reasonable time on 2,352 features; `tests/test_baselines.py` checks that the two agree.
+* **Checkpoints:** the small CNN checkpoint (0.46 MB) is committed so Phases 3 and 4 use exactly the model reported here. The ResNet18 checkpoint (45 MB) is not committed.
 
 ## Project layout
 

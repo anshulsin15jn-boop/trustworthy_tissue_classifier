@@ -5,9 +5,10 @@ venv/
 # Downloaded datasets (src/data.py downloads them again on a fresh clone)
 data/
 
-# Model checkpoints
-checkpoints/
-*.pt
+# Model checkpoints. The small CNN (0.46 MB) is committed so Phases 3 and 4
+# can be reproduced with the exact same model; larger checkpoints are not.
+checkpoints/*
+!checkpoints/small_cnn.pt
 *.pth
 
 # Python and tool caches
