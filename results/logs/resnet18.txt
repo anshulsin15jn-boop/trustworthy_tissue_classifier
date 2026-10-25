@@ -1,0 +1,10 @@
+Downloading: "https://download.pytorch.org/models/resnet18-f37072fd.pth" to C:\Users\anshu/.cache\torch\hub\checkpoints\resnet18-f37072fd.pth
+  0%|          | 0.00/44.7M [00:00<?, ?B/s] 13%|#2        | 5.75M/44.7M [00:00<00:00, 59.8MB/s] 30%|##9       | 13.4M/44.7M [00:00<00:00, 71.4MB/s] 50%|#####     | 22.5M/44.7M [00:00<00:00, 80.7MB/s] 68%|######7   | 30.2M/44.7M [00:00<00:00, 74.5MB/s] 87%|########6 | 38.8M/44.7M [00:00<00:00, 79.4MB/s]100%|##########| 44.7M/44.7M [00:00<00:00, 77.8MB/s]
+resnet18: 11,181,129 trainable parameters
+epoch  1  train loss 0.3773 acc 0.8671  val loss 0.2621 acc 0.9069  459s  peak RAM 1.04 GB  (best, saved)
+epoch  2  train loss 0.2337 acc 0.9179  val loss 0.4215 acc 0.8648  408s  peak RAM 1.04 GB
+epoch  3  train loss 0.2044 acc 0.9287  val loss 0.2087 acc 0.9245  378s  peak RAM 1.04 GB  (best, saved)
+epoch  4  train loss 0.1776 acc 0.9377  val loss 0.2506 acc 0.9184  359s  peak RAM 1.04 GB
+time budget of 25.0 minutes reached; best epoch 3
+test accuracy 0.8386  macro F1 0.7931  (val accuracy 0.9245)  peak RAM 1.04 GB
+exit code 0
