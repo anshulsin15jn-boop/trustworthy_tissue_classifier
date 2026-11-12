@@ -239,5 +239,4 @@ results/        metrics (JSON, CSV), figures, run logs, summary.md
 checkpoints/    small_cnn.pt (committed); other checkpoints are not committed
 tests/          pytest tests (25)
 data/           downloaded datasets (not committed)
-LEARNING_GUIDE.md  plain language guide to every part of the project
 ```
