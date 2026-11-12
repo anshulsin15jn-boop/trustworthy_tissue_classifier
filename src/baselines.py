@@ -1,11 +1,10 @@
-"""Phase 1: simple baselines on flattened pixels.
+"""Baselines on flattened pixels: logistic regression and a random forest.
 
 Run from the project root:
     python -m src.baselines
 
-Each image becomes one row of 2,352 numbers (28 x 28 pixels x 3 colors).
-The models see those numbers as an unordered list: they do not know which
-pixels are neighbors. That is the weakness the CNN in Phase 2 fixes.
+Each image is flattened to 2,352 features (28 x 28 pixels x 3 channels), so
+these models have no access to spatial neighborhood structure.
 """
 
 import argparse
@@ -27,12 +26,11 @@ class LogisticRegressionLBFGS:
     It minimizes the same objective as scikit learn's LogisticRegression(C=C):
         C * (sum of log losses) + 0.5 * (sum of squared weights)
     and uses the same scikit learn style methods (fit, predict, predict_proba, score).
-    We use PyTorch to fit it because scikit learn's solver took many minutes per
-    fit on 2,352 features without converging; this one converges in under a minute
-    on the full training set. tests/test_baselines.py checks the two agree.
+    PyTorch is used because scikit learn's solver did not converge in reasonable
+    time on 2,352 features; this version converges in under a minute on the full
+    training set. tests/test_baselines.py checks agreement with scikit learn.
 
-    Features are standardized (each pixel column gets mean 0 and std 1) using
-    training statistics, which puts all weights on a comparable scale.
+    Features are standardized per column using training statistics.
     """
 
     def __init__(self, C=1.0, max_iter=500):

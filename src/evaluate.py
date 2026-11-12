@@ -1,8 +1,4 @@
-"""Metrics and plots that every model in the project is judged by.
-
-All models (baselines, CNNs) go through the same functions here, so their
-numbers are directly comparable.
-"""
+"""Shared classification metrics and confusion matrix plots for all models."""
 
 import json
 from pathlib import Path
@@ -19,11 +15,7 @@ METRICS_DIR = PROJECT_ROOT / "results" / "metrics"
 
 
 def compute_metrics(y_true, y_pred, class_names=CLASS_NAMES):
-    """Return accuracy, macro F1, and per class precision, recall, F1, and support.
-
-    Accuracy counts every image equally, so common classes dominate it.
-    Macro F1 averages the F1 score of each class, so every class counts equally.
-    """
+    """Return accuracy, macro F1, and per class precision, recall, F1, and support."""
     labels = list(range(len(class_names)))
     precision, recall, f1, support = precision_recall_fscore_support(
         y_true, y_pred, labels=labels, zero_division=0

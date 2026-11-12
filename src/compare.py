@@ -3,8 +3,8 @@
 Run from the project root:
     python -m src.compare
 
-Writes results/metrics/comparison.csv and prints a Markdown table, so the
-numbers in the README always come straight from saved results.
+Writes results/metrics/comparison.csv and prints a Markdown table; README
+numbers are taken from this output.
 """
 
 import pandas as pd

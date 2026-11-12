@@ -1,16 +1,15 @@
-"""Phase 3 add on: is the test set's color different because of staining, or only because of class mix?
+"""Separate the train to test color shift into staining effects and class mix effects.
 
 Run from the project root:
     python -m src.stain
 
-Phase 0 found that the test set's colors differ from training, but the test
-set also has a different mix of classes, so that plot could not tell the two
-causes apart. Here we remove class mix from the comparison in two ways:
-  1. Compare train and test within each class (adipose versus adipose, and so on).
-  2. Weight the training images so their class mix matches the test set exactly,
-     then compare the overall color distributions again.
-If a difference survives both, it comes from the images themselves (staining,
-scanner, tissue preparation), not from which classes were sampled.
+The test set differs from training both in color statistics and in class
+proportions. Two comparisons remove the class mix confound:
+  1. Per class color histograms, train versus test.
+  2. Training histograms reweighted to the test class proportions, compared
+     with the test histograms.
+A difference that persists under both is attributed to the images themselves
+(staining, scanning, or tissue preparation).
 """
 
 import json

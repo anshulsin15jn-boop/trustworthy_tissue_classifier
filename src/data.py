@@ -1,7 +1,8 @@
-"""Loading PathMNIST with its official train, validation, and test splits.
+"""Data loading for PathMNIST (official splits) and BloodMNIST, plus tensor
+conversion, augmentation, and synthetic corruptions.
 
-Every other part of the project gets its data through this file, so all
-experiments see exactly the same images and labels.
+All experiments load data through this module so that they share identical
+images, labels, and preprocessing.
 """
 
 from pathlib import Path
@@ -77,8 +78,7 @@ def class_count_table(labels_by_split, class_names=CLASS_NAMES):
 def flatten(images):
     """Turn (N, 28, 28, 3) uint8 images into (N, 2352) float32 rows scaled to 0 to 1.
 
-    This is the input format for the scikit learn baselines, which expect one
-    row of numbers per example and know nothing about rows, columns, or colors.
+    Input format for the scikit learn baselines. Spatial structure is discarded.
     """
     return images.reshape(len(images), -1).astype(np.float32) / 255.0
 
@@ -108,12 +108,7 @@ def channel_mean_std(images, chunk=10000):
 
 
 def normalize(x_uint8, mean, std):
-    """Turn a uint8 tensor of shape (N, 3, H, W) into normalized floats.
-
-    Normalizing (subtract the mean, divide by the standard deviation, per
-    channel) puts every input on a similar scale around 0, which makes
-    training more stable.
-    """
+    """Convert a uint8 tensor of shape (N, 3, H, W) to floats standardized per channel."""
     mean = torch.tensor(mean).view(1, 3, 1, 1)
     std = torch.tensor(std).view(1, 3, 1, 1)
     return x_uint8.float().div_(255.0).sub_(mean).div_(std)
@@ -122,8 +117,7 @@ def normalize(x_uint8, mean, std):
 def to_tensor(images, mean, std):
     """Convert (N, H, W, 3) uint8 images to a normalized float tensor of shape (N, 3, H, W).
 
-    PyTorch wants the color channel first. Used for the smaller evaluation
-    sets; training batches are normalized one at a time by make_loader.
+    Used for the evaluation sets; training batches are normalized per batch by make_loader.
     """
     return normalize(torch.from_numpy(np.ascontiguousarray(images)).permute(0, 3, 1, 2), mean, std)
 
@@ -152,9 +146,7 @@ def make_loader(images, labels, mean, std, batch_size=128, shuffle=False, seed=0
 def augment(x):
     """Randomly flip and rotate each image in a batch by multiples of 90 degrees.
 
-    A tissue patch has no natural "up", so a flipped or rotated patch is still
-    a valid example of the same class. Showing the model these variants is a
-    cheap way to get more varied training data and reduce overfitting.
+    Tissue patches have no canonical orientation, so these transforms preserve the label.
     """
     n = x.shape[0]
     flip = torch.rand(n) < 0.5
@@ -168,13 +160,12 @@ def augment(x):
     return out
 
 
-# Unfamiliar data for Phase 3 --------------------------------------------------
+# Out of distribution data ----------------------------------------------------
 
 def load_bloodmnist_test(size=28, download=True):
-    """BloodMNIST test images: blood cell photos, a completely different kind of image.
+    """BloodMNIST test images (blood cell microscopy), used as a cross domain OOD set.
 
-    They are already 28 by 28 with 3 color channels, the same shape as PathMNIST,
-    so the classifier can be run on them without any conversion.
+    Same shape and channel count as PathMNIST, so no conversion is needed.
     """
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     dataset = BloodMNIST(split="test", download=download, root=str(DATA_DIR), size=size)
@@ -193,9 +184,8 @@ CORRUPTIONS = {
 def corrupt(images, kind, severity, seed=0):
     """Return a corrupted copy of uint8 images. severity is 1, 2, or 3.
 
-    These imitate things that go wrong in a real lab: an out of focus scan
-    (blur), sensor noise (noise), an over exposed scan (brightness), and a
-    faded stain (contrast).
+    Approximates common acquisition problems: defocus (blur), sensor noise
+    (noise), overexposure (brightness), and faded staining (contrast).
     """
     level = CORRUPTIONS[kind][severity - 1]
     x = images.astype(np.float32) / 255.0

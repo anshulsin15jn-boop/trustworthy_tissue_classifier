@@ -4,7 +4,7 @@ import pandas as pd
 from src.data import CLASS_NAMES, NUM_CLASSES, class_count_table, load_split
 
 
-# Tests for class_count_table, using tiny hand made labels so we know the answer.
+# class_count_table on small hand constructed label arrays with known counts.
 
 def test_counts_are_correct():
     labels = {

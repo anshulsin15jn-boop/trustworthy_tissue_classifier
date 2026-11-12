@@ -1,12 +1,13 @@
-"""Phase 3: can the model be trusted?
+"""Trust analysis for the small CNN: calibration, selective prediction, and OOD detection.
 
-Run from the project root (after training the small CNN):
+Run from the project root (requires checkpoints/small_cnn.pt):
     python -m src.trust
 
-Three questions, each answered with saved numbers and figures:
-  1. Calibration: when the model says 90 percent, is it right about 90 percent of the time?
-  2. Uncertainty: if the model refuses its least certain images, is it more accurate on the rest?
-  3. Out of distribution detection: can its uncertainty flag images unlike its training data?
+Outputs results/metrics/trust.json and figures in results/figures/:
+  1. Calibration: ECE and reliability diagrams before and after temperature scaling.
+  2. Uncertainty: accuracy versus coverage for max softmax, softmax entropy,
+     and Monte Carlo dropout entropy.
+  3. Out of distribution detection: AUROC on corrupted test images and BloodMNIST.
 """
 
 import json
@@ -28,27 +29,27 @@ N_BINS = 15
 # Basic probability tools -----------------------------------------------------
 
 def softmax(logits, temperature=1.0):
-    """Turn logits into probabilities that sum to 1. Higher temperature means softer, less confident."""
+    """Row wise softmax of logits / temperature."""
     z = logits / temperature
-    z = z - z.max(axis=1, keepdims=True)   # subtract the max for numerical safety; does not change the result
+    z = z - z.max(axis=1, keepdims=True)   # numerical stability
     e = np.exp(z)
     return e / e.sum(axis=1, keepdims=True)
 
 
 def entropy(probs):
-    """Predictive entropy: 0 when all probability is on one class, log(9) = 2.20 when spread evenly."""
+    """Predictive entropy in nats (maximum log(9) = 2.20 for 9 classes)."""
     return -(probs * np.log(np.clip(probs, 1e-12, 1.0))).sum(axis=1)
 
 
 def nll(probs, labels):
-    """Negative log likelihood: the average cross entropy loss of the given probabilities."""
+    """Mean negative log likelihood of the true labels."""
     return float(-np.log(np.clip(probs[np.arange(len(labels)), labels], 1e-12, 1.0)).mean())
 
 
 # 1. Calibration ----------------------------------------------------------------
 
 def reliability_bins(probs, labels, n_bins=N_BINS):
-    """Group predictions by confidence and compare confidence with accuracy in each group.
+    """Equal width confidence bins for reliability diagrams and ECE.
 
     Returns a list of dicts with the confidence range, mean confidence,
     accuracy, and number of predictions in each non empty bin.
@@ -67,27 +68,20 @@ def reliability_bins(probs, labels, n_bins=N_BINS):
 
 
 def expected_calibration_error(probs, labels, n_bins=N_BINS):
-    """ECE: the average gap between confidence and accuracy, weighted by how many predictions fall in each bin.
-
-    Example: if 100 predictions have about 90 percent confidence but only 80 of
-    them are right, that bin has a gap of 0.10. ECE averages these gaps over all
-    bins, so an ECE of 0.02 means confidence is off by about 2 points on average.
-    """
+    """Expected calibration error: bin weighted mean of |accuracy - confidence|."""
     n = len(labels)
     return float(sum(b["count"] / n * abs(b["accuracy"] - b["confidence"])
                      for b in reliability_bins(probs, labels, n_bins)))
 
 
 def fit_temperature(val_logits, val_labels):
-    """Find the single number T that makes softmax(logits / T) best match the validation labels.
+    """Fit a scalar temperature T minimizing validation NLL of softmax(logits / T).
 
-    T > 1 softens overconfident predictions, T < 1 sharpens underconfident ones.
-    Dividing every logit by the same T never changes which class is the highest,
-    so accuracy stays exactly the same; only the confidence changes.
+    Temperature scaling preserves the argmax, so accuracy is unchanged.
     """
     logits = torch.tensor(val_logits, dtype=torch.float64)
     labels = torch.tensor(val_labels)
-    log_t = torch.zeros(1, dtype=torch.float64, requires_grad=True)   # optimize log T so T stays positive
+    log_t = torch.zeros(1, dtype=torch.float64, requires_grad=True)   # log parameterization keeps T positive
     optimizer = torch.optim.LBFGS([log_t], lr=0.1, max_iter=200)
     loss_fn = torch.nn.CrossEntropyLoss()
 
@@ -111,15 +105,11 @@ def deterministic_logits(model, x, batch_size=1024):
 
 @torch.no_grad()
 def mc_dropout_probs(model, x, n_samples=MC_SAMPLES, seed=SEED, batch_size=1024):
-    """Monte Carlo dropout: run the model many times with dropout left on and collect the probabilities.
+    """Monte Carlo dropout probabilities, shape (n_samples, N, classes).
 
-    Each run randomly switches off a different set of neurons, so each run is
-    like a slightly different model. If the runs agree, the model is sure; if
-    they disagree, it is unsure. Returns an array of shape (n_samples, N, classes).
-
-    In SmallCNN the dropout layers are only in the classifier head, so the
-    convolution features are computed once and only the head is rerun, which
-    gives the same result as full passes at a fraction of the cost.
+    SmallCNN has dropout only in its classifier head, so convolution features
+    are computed once and only the head is resampled. This is equivalent to
+    full stochastic forward passes.
     """
     torch.manual_seed(seed)
     model.eval()
@@ -132,10 +122,9 @@ def mc_dropout_probs(model, x, n_samples=MC_SAMPLES, seed=SEED, batch_size=1024)
 
 
 def accuracy_coverage(confidence, correct):
-    """If the model only answers its most confident k images, how accurate is it on them?
+    """Selective prediction curve: accuracy on the k most confident images, for every k.
 
-    Returns (coverage, accuracy) arrays, where coverage is the share of
-    images answered, from the single most confident image up to all of them.
+    Returns (coverage, accuracy) arrays with coverage = k / N.
     """
     order = np.argsort(-confidence, kind="stable")
     hits = np.cumsum(correct[order])
@@ -151,16 +140,13 @@ def accuracy_at_coverage(confidence, correct, coverages=(0.5, 0.8, 0.9, 0.95, 1.
 # 3. Out of distribution detection ----------------------------------------------
 
 def auroc(in_scores, out_scores):
-    """Chance that a random unfamiliar image gets a higher uncertainty score than a random normal one.
-
-    0.5 means the score cannot tell them apart at all; 1.0 means it separates them perfectly.
-    """
+    """AUROC with out of distribution samples as the positive class (higher score = more uncertain)."""
     y = np.concatenate([np.zeros(len(in_scores)), np.ones(len(out_scores))])
     return float(roc_auc_score(y, np.concatenate([in_scores, out_scores])))
 
 
 def score_set(model, images, mean, std):
-    """All uncertainty scores for one set of images (higher always means more uncertain)."""
+    """Probabilities and uncertainty scores for a set of images (higher score = more uncertain)."""
     x = to_tensor(images, mean, std)
     probs = softmax(deterministic_logits(model, x))
     mc = mc_dropout_probs(model, x).mean(axis=0)
@@ -204,7 +190,7 @@ def plot_reliability(probs_before, probs_after, labels, temperature):
 def plot_accuracy_coverage(curves, title, name):
     fig, ax = plt.subplots(figsize=(7, 4.4))
     for (label, (cov, acc)), color in zip(curves.items(), [BLUE, ORANGE, AQUA, YELLOW]):
-        start = int(0.05 * len(cov))   # the first few points are too noisy to read
+        start = int(0.05 * len(cov))   # skip the noisy lowest 5 percent of coverage
         ax.plot(cov[start:] * 100, acc[start:] * 100, color=color, label=label)
     ax.set_xlabel("Coverage: percent of test images the model answers")
     ax.set_ylabel("Accuracy on answered images (%)")

@@ -1,187 +1,127 @@
 # Trustworthy Tissue Image Classifier
 
-A tissue image classifier that flags when it is unsure or seeing unfamiliar data, so a pathologist would know when to double check it.
+**Question:** can a tissue image classifier tell when it should not be trusted, especially on slides from a different hospital?
 
-## The question
+## Motivation
 
-Medical image classifiers can be accurate on average and still be confidently wrong on individual images, especially images that look different from their training data. This project trains classifiers on colon tissue images and then asks how far the model can be trusted: does it know when it does not know?
+Deep learning models for digital pathology are usually developed on slides from one institution and then used on slides from others. Differences in staining chemistry, protocols, and scanners shift the appearance of the images, and a model can lose accuracy without becoming any less confident. For a model to be useful as a second reader, it should flag the cases where its answer is unreliable so that a pathologist knows when to look more closely. I set out to measure how well a simple tissue classifier does this.
 
 ## Results at a glance
 
-* A small CNN reaches **0.875 test accuracy and 0.840 macro F1**, far above flattened pixel baselines (best 0.640 and 0.562).
-* It scores 0.977 on validation but 0.875 on test. The test images come from another hospital, and Phase 3 shows their colors differ because of staining, not because of a different class mix.
-* **Uncertainty helps:** if the model answers only its most certain half of test images, accuracy rises to 96.9% using Monte Carlo dropout.
-* **Confidence is not trustworthy on its own:** the model is about 6 points overconfident at the new hospital, temperature scaling fitted in house does not fix it, and it labels blood cell images as "background" with over 90% confidence 98.7% of the time.
+* A small CNN reaches **0.875 test accuracy and 0.840 macro F1** on slides from an unseen clinical center, against 0.640 and 0.562 for the best flattened pixel baseline.
+* Accuracy drops from 0.977 on in house validation data to 0.875 at the new center, and I trace the color shift to staining rather than class mix.
+* Letting the model abstain on its least certain half of images raises accuracy to **0.969**, but its raw confidence is not reliable: it is overconfident at the new center and assigns over 90% confidence to 98.7% of blood cell images it should not recognize at all.
 
-One page summary: [`results/summary.md`](results/summary.md).
+A one page summary is in [`results/summary.md`](results/summary.md).
 
-## The data
+## Approach
 
-[PathMNIST](https://medmnist.com/) from the MedMNIST collection: 107,180 patches of H&E stained colorectal cancer tissue, each 28 by 28 pixels, in 9 tissue classes. The official splits are 89,996 training, 10,004 validation, and 7,180 test images. The test images come from a different clinical center than the training images. See `notebooks/00_explore_data.ipynb` for the class balance, example images, and pixel statistics.
+**Data.** I used [PathMNIST](https://medmnist.com/) from the MedMNIST collection: 107,180 H&E stained colorectal tissue patches at 28 by 28 pixels in 9 classes (adipose, background, debris, lymphocytes, mucus, smooth muscle, normal mucosa, cancer associated stroma, and adenocarcinoma epithelium). I kept the official splits: 89,996 training and 10,004 validation images from one source (NCT CRC HE 100K) and 7,180 test images from a different clinical center (CRC VAL HE 7K). The test set therefore acts as an external validation set. The exploration notebook is `notebooks/00_explore_data.ipynb`.
 
 ![Example images per class](results/figures/examples_per_class.png)
 
-### What we learned from the data
+**Baselines.** Logistic regression and a random forest on flattened pixels (2,352 features), both trained on the full training set, with the logistic regression regularization strength chosen on validation.
 
-* **The training classes are fairly balanced.** The most common class (adenocarcinoma epithelium, 14.3%) is only about 1.6 times as common as the least common (normal colon mucosa, 8.8%). We still report macro F1 and per class recall, which weigh every class equally.
-* **The "background" class is not just empty glass.** Many background patches are dark, blurry, or edge regions of the slide. Some could be mistaken for dense purple tissue such as lymphocytes.
-* **The test set differs from the training set in two ways at once.** It comes from a different clinical center, and its pixel colors are more spread out. It also has a different mix of classes: 18.6% of test images are adipose (fat) versus 10.4% in training. Adipose patches are mostly pale, so the class mix alone shifts the color statistics. These overall histograms cannot tell us how much of the difference is staining and how much is class mix; Phase 3 answers that with a fairer comparison (it is staining).
-* **Validation looks like training, not like test.** Validation was cut from the same source as training, so a model may score higher on validation than on test. That gap is something to watch in later phases.
+**Convolutional networks.** A small CNN (three convolution blocks and a dropout classifier head, 111,369 parameters) trained from scratch with flip and rotation augmentation and early stopping on validation loss, and an ImageNet pretrained ResNet18 fine tuned at 28 by 28. Both were trained on a laptop CPU.
 
-## Methods by phase
+**Trust analysis** of the small CNN:
 
-| Phase | What | Status |
-|---|---|---|
-| 0 | Setup and data exploration | done |
-| 1 | Baselines: logistic regression, random forest | done |
-| 2 | Small CNN and pretrained ResNet18, both trained on CPU | done |
-| 3 | Trust: calibration, uncertainty, out of distribution detection, staining check | done |
-| 4 | Explainability with Grad CAM, writeup | done |
+* *Calibration:* expected calibration error (ECE) and reliability diagrams, before and after temperature scaling fitted on validation.
+* *Selective prediction:* accuracy versus coverage using max softmax probability, softmax entropy, and Monte Carlo dropout entropy (30 stochastic passes).
+* *Out of distribution detection:* AUROC for separating clean test images from synthetically corrupted test images (blur, noise, brightness, contrast at three severities) and from BloodMNIST, a different imaging domain.
+* *Stain shift analysis:* train versus test color histograms within each class, and with the training set reweighted to the test class mix.
+* *Explainability:* Grad CAM heatmaps, checked against an untrained model and across classes.
 
 ## Results
 
-Filled in as each phase finishes. Every number here comes from code in this repo.
-
-### Phase 1: baselines on flattened pixels
-
-Both models see each image as 2,352 unordered numbers and were trained on all 89,996 training images. Logistic regression's regularization strength was chosen on the validation set. Run `python -m src.baselines`; the log is in `results/logs/baselines.txt`.
-
-| Model | Test accuracy | Test macro F1 | Validation accuracy |
-|---|---|---|---|
-| Logistic regression (C = 0.0001) | 0.574 | 0.448 | 0.527 |
-| Random forest (200 trees) | 0.640 | 0.562 | 0.672 |
-
-What we learned:
-
-* **Flattened pixels only get you so far.** Background (100% recall for the random forest) and adipose are easy because their overall color is distinctive. Classes defined by texture and structure are hard.
-* **Normal mucosa is the worst case.** The random forest finds only 25% of normal mucosa and calls 48% of it tumor; logistic regression finds only 7%. A model that calls healthy tissue cancer is exactly the kind of error a pathologist needs flagged.
-* **Accuracy and macro F1 can move in opposite directions.** Logistic regression scores higher accuracy on test than on validation (0.574 versus 0.527) but lower macro F1 (0.448 versus 0.480). The test set contains more of the easy adipose class, which lifts accuracy without the model being better at the hard classes.
-* **Why a CNN should help:** flattening throws away which pixels are next to each other, so a model cannot learn "a ring of purple nuclei around a pale gland." A convolutional network keeps the 2D layout and learns small local patterns.
-
-![Random forest confusion matrix](results/figures/random_forest_confusion.png)
-
-### Phase 2: convolutional neural networks
-
-All four models on the same official test set (`python -m src.compare` rebuilds this table from `results/metrics/`):
+### Classification
 
 | Model | Test accuracy | Test macro F1 | Validation accuracy |
 |---|---|---|---|
 | Logistic regression (flattened pixels) | 0.574 | 0.448 | 0.527 |
 | Random forest (flattened pixels) | 0.640 | 0.562 | 0.672 |
-| **Small CNN** (trained from scratch, CPU) | **0.875** | **0.840** | 0.977 |
-| ResNet18 (ImageNet pretrained, fine tuned on CPU) | 0.839 | 0.793 | 0.925 |
+| **Small CNN** (from scratch, CPU) | **0.875** | **0.840** | 0.977 |
+| ResNet18 (ImageNet pretrained, 4 CPU epochs) | 0.839 | 0.793 | 0.925 |
 
-* **Small CNN:** three convolution blocks and a dropout classifier, 111,369 parameters. Trained with random flips and 90 degree rotations, Adam, batch size 128, and early stopping on validation loss (patience 4). It stopped after 28 epochs and kept epoch 24. Training took 22.1 minutes on a laptop CPU with a peak of 1.14 GB of RAM. Log: `results/logs/small_cnn.txt`.
-* **ResNet18:** ImageNet weights with a new 9 class output layer, fine tuned at 28 by 28. Each epoch took about 6 to 8 minutes on the CPU, so it ran under a 25 minute budget: 4 epochs, keeping epoch 3. Peak RAM was 1.04 GB. Log: `results/logs/resnet18.txt`.
-
-What we learned:
-
-* **Keeping the 2D layout is what matters.** The small CNN beats the random forest by 23.5 points of accuracy and 0.28 of macro F1. Normal mucosa recall rose from 25% to 91%.
-* **ResNet18 is undertrained, so its lower score says nothing about pretrained models in general.** It trained for only 4 epochs on a laptop CPU (the small CNN had 28), and it was still improving. Its design also shrinks a 28 by 28 input to a single cell by the last block, far from the 224 by 224 photos it was pretrained on. A longer run on a GPU, ideally at 64 by 64 or 224 by 224, is a planned next step; until then the fair conclusion is "not tested properly yet", not "pretraining does not help".
-* **There is a big gap between validation and test.** The small CNN reaches 0.977 on validation but 0.875 on test. Validation comes from the same source as training; test comes from another clinical center. A model can look nearly perfect in house and still drop 10 points at a new hospital.
-* **The hardest classes on test** are cancer associated stroma (55% recall, often called debris or smooth muscle), smooth muscle (67%), and mucus (74%, sometimes called background or adipose).
-
-![Small CNN training curves](results/figures/small_cnn_training_curves.png)
+The table is generated from `results/metrics/` by `python -m src.compare`. Keeping the spatial layout is what matters: the small CNN raises normal mucosa recall from 0.25 (random forest) to 0.91. Its hardest classes on the external test set are cancer associated stroma (recall 0.55), smooth muscle (0.67), and mucus (0.74).
 
 ![Small CNN confusion matrix](results/figures/small_cnn_confusion.png)
 
-## Trust
+### Calibration
 
-Phase 3 asks whether the small CNN knows when it does not know. Run `python -m src.trust` and `python -m src.stain`; all numbers are in `results/metrics/trust.json` and `results/metrics/stain.json`.
-
-### Calibration: does 90 percent confidence mean 90 percent right?
-
-| | Validation ECE | Test ECE | Mean confidence on test | Test accuracy |
+| | Validation ECE | Test ECE | Mean test confidence | Test accuracy |
 |---|---|---|---|---|
 | Small CNN | 0.003 | 0.064 | 0.938 | 0.875 |
-| Small CNN after temperature scaling (T = 0.93) | 0.003 | 0.069 | 0.942 | 0.875 |
-
-* **In house, the model is almost perfectly calibrated** (ECE 0.003 on validation). **At the new hospital it is overconfident**: about 6 points more confident than it is accurate.
-* **Temperature scaling did not help.** It is fitted on validation data, where there was nothing to fix, so it learned T = 0.93 (slightly sharper) and made test calibration a little worse. A calibration fix learned on in house data cannot anticipate a shift it has never seen. (For ResNet18, using the local checkpoint, temperature scaling did lower test ECE slightly, from 0.078 to 0.071.)
+| After temperature scaling (T = 0.93) | 0.003 | 0.069 | 0.942 | 0.875 |
 
 ![Reliability diagram](results/figures/reliability_diagram.png)
 
-### Uncertainty: can the model hand its hardest cases to a pathologist?
+### Selective prediction
 
-| Uncertainty score | Accuracy if the model answers its most certain 50% | 80% | 90% | All |
+| Uncertainty score | Accuracy at 50% coverage | 80% | 90% | 100% |
 |---|---|---|---|---|
 | Max softmax probability | 0.950 | 0.935 | 0.916 | 0.875 |
-| Monte Carlo dropout entropy (30 passes) | **0.969** | **0.940** | 0.910 | 0.873 |
+| Monte Carlo dropout entropy | **0.969** | **0.940** | 0.910 | 0.873 |
 
-* **Refusing uncertain images works.** If the model answers only its most certain half, accuracy rises from 87.5% to 95.0% with max softmax and 96.9% with Monte Carlo dropout.
-* **Monte Carlo dropout separates right from wrong answers best**: AUROC 0.828, against 0.774 for max softmax probability. Its advantage is at low and middle coverage; at 90% coverage the two are about equal.
-* **Some mistakes are invisible to confidence:** 219 wrong test predictions had more than 99% confidence. The most confident ones are all smooth muscle called background at 100%.
+Monte Carlo dropout entropy also separates correct from incorrect predictions best (AUROC 0.828, against 0.774 for max softmax). Even so, 219 incorrect test predictions had confidence above 0.99; the most confident errors are smooth muscle predicted as background.
 
 ![Accuracy versus coverage](results/figures/accuracy_coverage.png)
 
-![Confident mistakes](results/figures/confident_mistakes.png)
+![Most confident mistakes](results/figures/confident_mistakes.png)
 
-### Out of distribution detection: does the model notice unfamiliar images?
+### Out of distribution detection
 
-AUROC for telling clean test images apart from each kind of unfamiliar data (0.5 is chance, 1.0 is perfect):
-
-| Unfamiliar data | Accuracy on it | Max softmax | Monte Carlo dropout entropy |
+| Shifted data | Accuracy on it | AUROC, max softmax | AUROC, MC dropout entropy |
 |---|---|---|---|
-| Gaussian noise (strongest) | 0.092 | 0.627 | **0.957** |
-| Brightness (strongest) | 0.089 | 0.714 | **0.871** |
-| Blur (strongest) | 0.295 | 0.580 | 0.629 |
-| Contrast (strongest) | 0.336 | 0.548 | 0.597 |
-| BloodMNIST (blood cells, not tissue) | not applicable | **0.172** | 0.536 |
-
-* **Corruptions wreck accuracy while confidence stays high.** Under noise, accuracy falls to about 9%, which is chance for 9 classes, yet mean confidence stays between 0.79 and 0.89.
-* **Monte Carlo dropout catches noise and brightness changes well** (AUROC up to 0.96). Max softmax catches them only weakly, and neither catches faded contrast or blur.
-* **BloodMNIST is a complete failure.** The tissue model calls 98% of blood cell images "background", and 98.7% of them get over 90% confidence. Max softmax AUROC is 0.17, worse than chance: the model is *more* confident on blood cells than on real tissue. Monte Carlo dropout only brings this to 0.54, close to chance. A softmax classifier has no "none of the above" option, so data from a different domain can land confidently in whichever class it most resembles.
+| Gaussian noise (severity 3) | 0.092 | 0.627 | **0.957** |
+| Brightness (severity 3) | 0.089 | 0.714 | **0.871** |
+| Blur (severity 3) | 0.295 | 0.580 | 0.629 |
+| Contrast (severity 3) | 0.336 | 0.548 | 0.597 |
+| BloodMNIST | not applicable | **0.172** | 0.536 |
 
 ![Out of distribution AUROC](results/figures/ood_auroc.png)
 
-![BloodMNIST images the model was confident about](results/figures/bloodmnist_confident.png)
+![BloodMNIST images classified with high confidence](results/figures/bloodmnist_confident.png)
 
-### Is the test set's color different because of staining or because of class mix?
+### Stain shift
 
-Phase 0 could not separate the two. Here the training set is reweighted to the test set's exact class mix. The color distance between train and test barely moves (red 0.173 to 0.171, green 0.186 to 0.196, blue 0.192 to 0.184, on a scale where 0 is identical and 1 is no overlap). **The difference is in the images themselves, not the class mix:** a real staining or scanning shift. Within single classes it is largest for background (0.62) and adipose (0.45) and smallest for normal mucosa (0.07).
+Reweighting the training images to the test class proportions leaves the train to test color distance essentially unchanged (total variation distance: red 0.173 to 0.171, green 0.186 to 0.196, blue 0.192 to 0.184). Within classes, the shift is largest for background (0.62) and adipose (0.45) and smallest for normal mucosa (0.07).
 
-![Color after matching class mix](results/figures/stain_reweighted_histograms.png)
+![Color distributions after matching class mix](results/figures/stain_reweighted_histograms.png)
 
-### What worked and what did not
+### Explainability
 
-* **Worked:** Monte Carlo dropout entropy is the most useful flag. It raises accuracy on the cases the model keeps and detects noise and exposure problems well.
-* **Did not work:** temperature scaling fitted in house did not fix overconfidence at a new hospital, contrast and blur changes were mostly undetected, and blood cell images, a different domain entirely, were not flagged at all.
-* **The takeaway for a pathologist:** high confidence from this model is not a guarantee. Uncertainty flags catch some problems, but a separate check that an image is even tissue is needed before trusting any prediction.
-
-## Explainability: where does the model look?
-
-Grad CAM highlights the regions that pushed the small CNN toward its prediction (`python -m src.explain`; numbers in `results/metrics/gradcam.json`).
+Grad CAM heatmaps from the trained model are uncorrelated with those from an untrained copy (median correlation −0.02 over 500 test images) and differ between the top two classes (−0.13), so they reflect learned, class specific evidence. For adipose they highlight cell walls, for lymphocytes clusters of nuclei, and for normal mucosa the tissue around glands. The highest confidence errors produce diffuse heatmaps covering the whole patch, consistent with a shortcut based on overall color and texture. The maps are computed on a 7 by 7 grid, so they are coarse.
 
 ![Grad CAM examples](results/figures/gradcam_examples.png)
 
-* **Sanity checks pass.** Heatmaps from the trained model are unrelated to heatmaps from an untrained copy (median correlation −0.02 over 500 test images), so they reflect what the model learned rather than just image edges. Heatmaps for the predicted class and the second most likely class also differ (median correlation −0.13), so they are specific to the class being explained.
-* **Several correct predictions look sensible:** for adipose it lights up the thin cell walls rather than the empty fat, for lymphocytes the dense clusters of nuclei, and for normal mucosa the ring of tissue around a gland.
-* **The worst mistakes look like a texture shortcut.** When muscle or mucus is called background at 99 to 100% confidence, the heatmap covers almost the whole patch evenly instead of any one structure, which suggests the model is reacting to a smooth overall color and texture.
-* **Uncertain images are mostly pale and sparse,** and their heatmaps are faint and scattered at the edges: the model finds little evidence for any class.
-* **Caution:** the heatmap is computed on a 7 by 7 grid and stretched to 28 by 28, so it is coarse. It shows *where* the evidence was, not *why*, and it cannot prove the model uses the same features a pathologist would.
+## Key findings
+
+* **A new hospital costs about 10 points, and the cause is staining.** Accuracy falls from 0.977 on validation to 0.875 on the external test set. Matching the class mix does not remove the color difference, so it reflects staining or scanning rather than which tissue types were sampled.
+* **Calibration does not transfer.** The model is well calibrated in house (ECE 0.003) but overconfident at the new center (ECE 0.064). Temperature scaling fitted on validation finds nothing to correct and leaves test ECE slightly worse (0.069).
+* **Abstaining on uncertain cases helps.** Answering only the most certain half of test images raises accuracy from 0.875 to 0.969 with Monte Carlo dropout entropy.
+* **Out of distribution detection is uneven.** Monte Carlo dropout detects heavy noise well (AUROC up to 0.96), but BloodMNIST is missed entirely: max softmax AUROC is 0.17, meaning the model is more confident on blood cells than on real tissue.
 
 ## Limitations
 
-* **Low resolution:** 28 by 28 pixel patches lose most cell level detail that a pathologist would use.
-* **One dataset from one source:** training data comes from one collection, and the test set from one other clinical center. Results at other hospitals could differ.
-* **Stained images, not the lab's modality:** these are H&E stained images, not the label free infrared chemical images used by the Bhargava lab, so none of these numbers transfer directly.
-* **Out of distribution data is simulated or from a different domain:** corruptions were added by code, and BloodMNIST is a completely different kind of image. Real failures (folded tissue, pen marks, a new scanner) were not tested.
-* **ResNet18 is undertrained:** 4 epochs on a CPU, so its comparison with the small CNN is not fair yet.
-* **One training run per model:** no repeated seeds, so there are no error bars, and small differences (for example 0.950 versus 0.969) may partly be noise.
-* **Validation was used for several choices** (early stopping, the logistic regression C, and the temperature), and it does not resemble the test hospital.
-* **Small CNN training took 22 minutes,** above the 15 minute target for laptop runs.
+* Images are only 28 by 28 pixels, which removes most cell level detail.
+* All data comes from one public dataset, with a single external test center.
+* The images are stained H&E, not label free infrared chemical imaging, so the results do not transfer directly to that modality.
+* ResNet18 is undertrained: it ran for 4 epochs on a CPU and was still improving, so its lower score does not show that pretrained models are worse for this task.
+* Out of distribution data is either simulated (corruptions) or from a different domain (BloodMNIST), not real acquisition failures.
+* Each model was trained once, so there are no error bars across seeds.
 
-## What to try next
+## Next steps
 
-* Train ResNet18 properly on a GPU (Google Colab) for more epochs at 64 by 64 or 224 by 224.
-* Reduce the stain shift: stain normalization or color augmentation during training, then check whether the validation to test gap shrinks.
-* Better uncertainty: deep ensembles (several independently trained models), and dropout in the convolution layers, not only the classifier head.
-* A dedicated "is this even tissue?" check, for example distance in the model's feature space, since softmax confidence failed on blood cells.
-* Repeat every run with several seeds and report the spread.
+* Train ResNet18 for longer on a GPU, at 64 by 64 or 224 by 224.
+* Add stain normalization or color augmentation and measure whether the validation to test gap shrinks.
+* Compare deep ensembles and dropout in the convolution layers against head only Monte Carlo dropout.
+* Add a dedicated input check, for example a feature space distance, to reject images that are not tissue.
+* Repeat all runs over several seeds.
 
 ## How to reproduce
 
-Requires Python 3.12 and git. Name the Python version explicitly when creating the environment, because plain `python` may point to a different version on your machine.
+Requires Python 3.12 and git.
 
 ```bash
 git clone https://github.com/anshulsin15jn-boop/trustworthy_tissue_classifier.git
@@ -194,49 +134,55 @@ py -3.12 -m venv .venv
 python3.12 -m venv .venv
 source .venv/bin/activate
 
-python --version            # should print Python 3.12.x
 pip install -r requirements.txt
 python -m pytest            # downloads PathMNIST (about 200 MB) on the first run
-jupyter notebook notebooks/00_explore_data.ipynb
 ```
 
-Then run each phase from the project root. Times are from a 16 core laptop CPU.
+Each stage runs from the project root. Times are from a 16 core laptop CPU.
 
 ```bash
-python -m src.baselines                      # Phase 1, about 3 minutes
-python -m src.train --model small_cnn        # Phase 2, about 22 minutes (overwrites the committed checkpoint)
-python -m src.train --model resnet18 --lr 0.0005 --max-epochs 5 --patience 2 --max-minutes 25   # about 27 minutes
+python -m src.baselines                      # baselines, about 3 minutes
+python -m src.train --model small_cnn        # small CNN, about 22 minutes (overwrites the committed checkpoint)
+python -m src.train --model resnet18 --lr 0.0005 --max-epochs 5 --patience 2 --max-minutes 25
 python -m src.compare                        # comparison table
-python -m src.stain                          # Phase 3 staining check, about 1 minute
-python -m src.trust                          # Phase 3 trust analysis, a few minutes (downloads BloodMNIST)
-python -m src.explain                        # Phase 4 Grad CAM, under a minute
+python -m src.stain                          # stain shift analysis, about 1 minute
+python -m src.trust                          # calibration, uncertainty, OOD (downloads BloodMNIST)
+python -m src.explain                        # Grad CAM, under a minute
 ```
 
-Phases 3 and 4 only need the committed small CNN checkpoint, so you can skip the training commands and get the same numbers as this README. Retraining on another machine may give slightly different numbers, because CPU arithmetic is not perfectly deterministic. Run logs are in `results/logs/`.
+The trust and explainability stages only need the committed small CNN checkpoint (`checkpoints/small_cnn.pt`, 0.46 MB), so they reproduce the reported numbers without retraining. Retraining on other hardware may give slightly different numbers because CPU arithmetic is not fully deterministic. Run logs are in `results/logs/`.
 
-## Engineering notes
+### Engineering notes
 
-* **Memory:** the first small CNN run was stopped when the laptop ran low on memory. Training now keeps images as 8 bit integers and normalizes one batch at a time, computes channel statistics in chunks, and uses a single process DataLoader (`num_workers=0`). Peak RAM fell to 1.14 GB for the small CNN and 1.04 GB for ResNet18, logged in each run.
-* **Logistic regression** is fit with full batch `L-BFGS` in PyTorch, minimizing the same objective as scikit learn's `LogisticRegression`. scikit learn's own solver did not converge in reasonable time on 2,352 features; `tests/test_baselines.py` checks that the two agree.
-* **Checkpoints:** the small CNN checkpoint (0.46 MB) is committed so Phases 3 and 4 use exactly the model reported here. The ResNet18 checkpoint (45 MB) is not committed.
+* Training stores images as 8 bit integers and normalizes per batch, computes channel statistics in chunks, and uses `num_workers=0`. Peak RAM was 1.14 GB for the small CNN and 1.04 GB for ResNet18.
+* Logistic regression is fit with full batch `L-BFGS` in PyTorch, minimizing the same objective as scikit learn's `LogisticRegression`, because scikit learn's solver did not converge in reasonable time on 2,352 features. `tests/test_baselines.py` checks that the two agree.
 
-## Project layout
+### Project layout
 
 ```
 src/
-  data.py       loading PathMNIST and BloodMNIST, tensors, augmentation, corruptions
-  baselines.py  Phase 1: logistic regression and random forest
+  data.py       data loading, tensors, augmentation, corruptions
+  baselines.py  logistic regression and random forest
   models.py     small CNN and ResNet18, checkpoints
-  train.py      training loop with early stopping, test evaluation
+  train.py      training with early stopping, test evaluation
   evaluate.py   accuracy, macro F1, per class metrics, confusion matrices
   compare.py    model comparison table
-  trust.py      Phase 3: calibration, uncertainty, out of distribution detection
-  stain.py      Phase 3: staining versus class mix comparison
-  explain.py    Phase 4: Grad CAM and its sanity checks
+  trust.py      calibration, selective prediction, OOD detection
+  stain.py      stain shift versus class mix analysis
+  explain.py    Grad CAM and sanity checks
   plotting.py   shared plot style
-notebooks/      data exploration notebook
-results/        metrics (JSON, CSV), figures, run logs, summary.md
-checkpoints/    small_cnn.pt (committed); other checkpoints are not committed
-tests/          pytest tests (25)
-data/           downloaded datasets (not committed)
+notebooks/      data exploration
+results/        metrics, figures, run logs, summary.md
+checkpoints/    small_cnn.pt
+tests/          pytest tests
 ```
+
+## Credits
+
+* **MedMNIST** (PathMNIST and BloodMNIST): Yang et al., *Scientific Data*, 2023, [doi:10.1038/s41597-022-01721-8](https://doi.org/10.1038/s41597-022-01721-8). Released under CC BY 4.0.
+* **Original colorectal histology data** (NCT CRC HE 100K and CRC VAL HE 7K): Kather et al., *PLOS Medicine*, 2019, [doi:10.1371/journal.pmed.1002730](https://doi.org/10.1371/journal.pmed.1002730).
+* **Original blood cell data** behind BloodMNIST: Acevedo et al., *Data in Brief*, 2020, [doi:10.1016/j.dib.2020.105474](https://doi.org/10.1016/j.dib.2020.105474).
+
+## Built with
+
+Python, PyTorch, and scikit learn, with Claude Code as a coding assistant.

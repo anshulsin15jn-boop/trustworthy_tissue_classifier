@@ -48,22 +48,15 @@ def peak_memory_gb():
 
 
 def set_seed(seed=0):
-    """Fix every source of randomness we control, so reruns give the same result."""
+    """Seed Python, NumPy, and PyTorch random number generators."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
 
 
 def train_step(model, x, y, optimizer, loss_fn):
-    """One step of gradient descent on one mini batch. Returns (loss, logits).
-
-    1. Forward pass: the model turns images into scores (logits), one per class.
-    2. Loss: cross entropy measures how wrong those scores are for the true labels.
-    3. Backward pass: PyTorch computes how the loss would change if each weight
-       changed slightly (the gradient).
-    4. Optimizer step: nudge every weight a little in the direction that lowers the loss.
-    """
-    optimizer.zero_grad()          # clear gradients left over from the previous step
+    """One optimizer step on a mini batch (forward, loss, backward, update). Returns (loss, logits)."""
+    optimizer.zero_grad()
     logits = model(x)
     loss = loss_fn(logits, y)
     loss.backward()
@@ -72,10 +65,10 @@ def train_step(model, x, y, optimizer, loss_fn):
 
 
 def run_epoch(model, loader, loss_fn, optimizer=None, use_augment=False):
-    """One full pass over a loader. Trains if an optimizer is given, otherwise only measures.
+    """One pass over a loader; trains if an optimizer is given, otherwise evaluates.
 
-    Returns (mean loss, accuracy). Training accuracy is measured on the
-    augmented images with dropout on, so it is a little pessimistic.
+    Returns (mean loss, accuracy). Training metrics are computed on augmented
+    inputs with dropout active.
     """
     training = optimizer is not None
     model.train(training)
@@ -108,12 +101,11 @@ def predict_logits(model, loader):
 
 def fit(model, name, train_loader, val_loader, mean, std, lr=1e-3, max_epochs=30, patience=4,
         max_minutes=None):
-    """Train until validation loss stops improving for `patience` epochs in a row.
+    """Train with early stopping on validation loss.
 
-    After each epoch we check the loss on the validation set, which the model
-    never trains on. Whenever it reaches a new best, we save a checkpoint. If
-    it fails to improve for `patience` epochs, the model has started to
-    memorize the training set (overfitting), so we stop and keep the best one.
+    A checkpoint is saved at each new best validation loss. Training stops after
+    `patience` epochs without improvement, after `max_epochs`, or when the
+    optional `max_minutes` budget is exceeded.
     """
     loss_fn = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)

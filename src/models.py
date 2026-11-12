@@ -15,10 +15,7 @@ CHECKPOINT_DIR = PROJECT_ROOT / "checkpoints"
 class SmallCNN(nn.Module):
     """Three convolution blocks followed by a small classifier with dropout.
 
-    Image size through the network: 28 by 28 -> 14 by 14 -> 7 by 7.
-    Each convolution looks at 3 by 3 pixel neighborhoods, so early layers
-    detect small patterns (edges, dots of color) and later layers combine
-    them into larger ones (clusters of nuclei, fiber texture).
+    Spatial size: 28 by 28 -> 14 by 14 -> 7 by 7. All convolutions are 3 by 3.
     """
 
     def __init__(self, num_classes=NUM_CLASSES, dropout=0.3):
@@ -30,10 +27,9 @@ class SmallCNN(nn.Module):
             nn.MaxPool2d(2),                                                   # 14 -> 7
             nn.Conv2d(64, 128, kernel_size=3, padding=1), nn.BatchNorm2d(128), nn.ReLU(),
         )
-        # Average each of the 128 feature maps down to one number per image.
-        self.pool = nn.AdaptiveAvgPool2d(1)
-        # Dropout randomly zeroes some values during training. Phase 3 also
-        # keeps it on at test time (Monte Carlo dropout) to measure uncertainty.
+        self.pool = nn.AdaptiveAvgPool2d(1)   # global average pooling to 128 features
+        # Dropout is confined to the head, which allows Monte Carlo dropout
+        # (src/trust.py) to reuse the convolution features across passes.
         self.classifier = nn.Sequential(
             nn.Flatten(),
             nn.Dropout(dropout),
@@ -47,16 +43,12 @@ class SmallCNN(nn.Module):
 
     @property
     def gradcam_layer(self):
-        """The last convolution block's output (7 by 7 maps), used by Grad CAM in Phase 4."""
+        """Output of the last convolution block (7 by 7 maps), the Grad CAM target layer."""
         return self.features[-1]
 
 
 def build_resnet18(num_classes=NUM_CLASSES, pretrained=True):
-    """ResNet18 with ImageNet weights and a new final layer for our 9 classes.
-
-    Everything except the last layer starts from what the network learned on
-    1.2 million everyday photos. Only the last layer starts from scratch.
-    """
+    """ResNet18 initialized from ImageNet weights, with a new 9 class output layer."""
     weights = ResNet18_Weights.IMAGENET1K_V1 if pretrained else None
     model = resnet18(weights=weights)
     model.fc = nn.Linear(model.fc.in_features, num_classes)

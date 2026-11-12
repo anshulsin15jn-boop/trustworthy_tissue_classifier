@@ -1,14 +1,13 @@
-"""Phase 4: Grad CAM heatmaps showing which parts of an image drove the small CNN's prediction.
+"""Grad CAM heatmaps for the small CNN, with two sanity checks.
 
-Run from the project root (after training the small CNN):
+Run from the project root (requires checkpoints/small_cnn.pt):
     python -m src.explain
 
-How Grad CAM works, in short: the last convolution layer produces 128 feature
-maps of 7 by 7 cells, each reacting to some learned pattern. We ask how much
-the score for a class would rise if each map got stronger (the gradient),
-average that into one importance weight per map, and add the maps up using
-those weights. Cells that end up high are the regions that pushed the model
-toward that class. The 7 by 7 result is stretched to 28 by 28 to overlay it.
+Grad CAM weights each of the 128 feature maps (7 by 7) from the last
+convolution block by the spatially averaged gradient of the target class
+score, sums them, applies ReLU, and upsamples the result to 28 by 28.
+Sanity checks compare heatmaps against an untrained model and against the
+second most likely class.
 """
 
 import json
@@ -84,7 +83,7 @@ def main():
     correct = pred == test_y
 
     rng = np.random.default_rng(SEED)
-    # Correct and confident: one per class where possible, so we see every tissue type.
+    # Correct and confident (> 0.95): one example per class where available.
     confident_right = [rng.choice(np.flatnonzero(correct & (test_y == c) & (conf > 0.95)))
                        for c in range(len(SHORT_NAMES)) if (correct & (test_y == c) & (conf > 0.95)).any()]
     wrong = np.flatnonzero(~correct)
@@ -117,8 +116,8 @@ def main():
     random_cams = gradcam(random_model, x[sample], target)
     correlations = [np.corrcoef(a.ravel(), b.ravel())[0, 1] for a, b in zip(trained_cams, random_cams)
                     if a.std() > 0 and b.std() > 0]
-    # Also: does the heatmap depend on which class we ask about? Compare the
-    # predicted class with the second most likely class.
+    # Class sensitivity check: compare heatmaps for the predicted class and
+    # the second most likely class.
     second = torch.from_numpy(np.argsort(-probs[sample], axis=1)[:, 1])
     second_cams = gradcam(model, x[sample], second)
     class_corr = [np.corrcoef(a.ravel(), b.ravel())[0, 1] for a, b in zip(trained_cams, second_cams)
