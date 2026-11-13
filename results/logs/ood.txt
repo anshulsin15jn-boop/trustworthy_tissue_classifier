@@ -1,0 +1,15 @@
+fitted Mahalanobis and kNN on 89996 training features (11s)
+blur 1: 1 minus max softmax 0.545/0.933, MC dropout entropy 0.560/0.925, energy 0.508/0.930, Mahalanobis 0.699/0.843, kNN distance 0.654/0.854
+blur 2: 1 minus max softmax 0.601/0.874, MC dropout entropy 0.647/0.806, energy 0.600/0.821, Mahalanobis 0.781/0.642, kNN distance 0.751/0.600
+blur 3: 1 minus max softmax 0.580/0.851, MC dropout entropy 0.629/0.752, energy 0.571/0.770, Mahalanobis 0.806/0.592, kNN distance 0.768/0.447
+noise 1: 1 minus max softmax 0.766/0.759, MC dropout entropy 0.880/0.451, energy 0.851/0.466, Mahalanobis 0.957/0.161, kNN distance 0.988/0.030
+noise 2: 1 minus max softmax 0.726/0.817, MC dropout entropy 0.935/0.280, energy 0.693/0.792, Mahalanobis 0.984/0.000, kNN distance 0.991/0.011
+noise 3: 1 minus max softmax 0.627/0.910, MC dropout entropy 0.957/0.228, energy 0.309/1.000, Mahalanobis 0.993/0.000, kNN distance 0.992/0.001
+brightness 1: 1 minus max softmax 0.584/0.894, MC dropout entropy 0.644/0.842, energy 0.580/0.763, Mahalanobis 0.893/0.464, kNN distance 0.887/0.332
+brightness 2: 1 minus max softmax 0.582/0.936, MC dropout entropy 0.727/0.907, energy 0.617/0.785, Mahalanobis 0.928/0.247, kNN distance 0.978/0.085
+brightness 3: 1 minus max softmax 0.714/0.925, MC dropout entropy 0.871/0.812, energy 0.730/0.608, Mahalanobis 0.888/0.351, kNN distance 0.982/0.034
+contrast 1: 1 minus max softmax 0.503/0.947, MC dropout entropy 0.512/0.952, energy 0.496/0.950, Mahalanobis 0.609/0.902, kNN distance 0.583/0.873
+contrast 2: 1 minus max softmax 0.527/0.932, MC dropout entropy 0.547/0.910, energy 0.530/0.908, Mahalanobis 0.717/0.744, kNN distance 0.682/0.694
+contrast 3: 1 minus max softmax 0.548/0.922, MC dropout entropy 0.597/0.829, energy 0.576/0.860, Mahalanobis 0.806/0.549, kNN distance 0.737/0.469
+BloodMNIST: 1 minus max softmax 0.172/0.998, MC dropout entropy 0.536/0.997, energy 0.186/0.996, Mahalanobis 0.979/0.004, kNN distance 0.968/0.126
+saved results/metrics/ood_scores.json (102s)
